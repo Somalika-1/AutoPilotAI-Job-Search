@@ -26,10 +26,14 @@ autopilot-ai/
 │   ├── alembic/                   # DB migrations
 │   ├── tests/                     # pytest
 │   └── requirements.txt
-├── frontend/
-│   ├── app/                       # Next.js app router pages
-│   ├── components/
-│   └── lib/                        # API client, types shared with backend contracts
+├── frontend/                       # React + Vite SPA
+│   ├── src/
+│   │   ├── pages/                  # route components (Login, Upload, Dashboard, Results)
+│   │   ├── components/
+│   │   ├── lib/                    # API client (fetch/axios wrapper), shared types
+│   │   └── router.tsx              # React Router route definitions
+│   ├── index.html
+│   └── vite.config.ts
 ├── README.md
 ├── ARCHITECTURE.md
 ├── ROADMAP.md
@@ -112,7 +116,7 @@ Playwright-based LinkedIn/Indeed automation is kept only as an **optional, expli
 
 ## Deployment
 
-- Frontend → Vercel (native Next.js support)
+- Frontend → Vercel (static SPA build via `vite build`, served as a static site)
 - Backend → Railway or Render; a `Dockerfile` is added at the deployment checkpoint (end of V1), not before — not needed for local dev with `uvicorn`.
 - Database → managed Postgres on the same platform as the backend (Railway/Render Postgres addon), or Supabase as an alternative.
 - Redis is **not** part of V1; only considered later if caching becomes a measured problem (e.g. repeated identical match requests).

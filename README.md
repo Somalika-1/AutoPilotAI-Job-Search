@@ -1,5 +1,7 @@
 # AutoPilotAI — Autonomous Job Search & Resume Intelligence Platform
 
+
+
 > **Status: V1 in progress — Checkpoint 0 (docs & repo scaffolding)**. See [ROADMAP.md](./ROADMAP.md) for live progress.
 
 An AI-powered career assistant that analyzes resumes against job descriptions using LLM-based matching, surfaces missing skills, and drafts tailored cover letters. Built as a portfolio project to go beyond "used ChatGPT" and demonstrate real product + API integration engineering.
@@ -18,14 +20,14 @@ Later versions add legitimate job-board API search, saved jobs, application trac
 
 | Layer | Choice | Why |
 |---|---|---|
-| Frontend | Next.js + TypeScript + Tailwind CSS | Modern, recruiter-recognizable stack; fast UI iteration |
+| Frontend | React (Vite) + TypeScript + Tailwind CSS + React Router | Backend is a separate FastAPI API, so the frontend is a pure SPA — no need for Next.js's SSR/server-actions/API-routes, which would go unused here |
 | Backend | FastAPI (Python) | Clean API structure, strongest ecosystem for AI integration |
 | Database | PostgreSQL | Relational data (users, resumes, jobs, matches) fits well; battle-tested |
 | Auth | Hand-rolled JWT (FastAPI + passlib + python-jose) | Demonstrates understanding of auth mechanics, not just wiring a SaaS |
 | AI | OpenAI API (`gpt-4o-mini` / `gpt-4.1-mini`), structured outputs | Resume analysis, JD matching, cover letter generation |
 | File processing | PyPDF, python-docx | Resume text extraction |
 | Job sourcing (V2+) | Public job-board APIs (Adzuna, RemoteOK, Arbeitnow, USAJobs, Greenhouse/Lever) | Legal, stable, no ToS/scraping risk |
-| Deployment | Vercel (frontend), Railway/Render (backend + Postgres) | Free/cheap tiers, simple CI |
+| Deployment | Vercel (frontend static build), Railway/Render (backend + Postgres) | Free/cheap tiers, simple CI |
 
 **Deliberately excluded for now:** local LLMs, vector databases, LangChain/agent frameworks, microservices, Docker-for-everything. These add real value later but would burn weeks of setup before a single feature works. See `ARCHITECTURE.md` for the reasoning.
 
@@ -34,7 +36,7 @@ Later versions add legitimate job-board API search, saved jobs, application trac
 ```
 autopilot-ai/
 ├── backend/            # FastAPI app (see ARCHITECTURE.md for internal layout)
-├── frontend/           # Next.js app
+├── frontend/           # React (Vite) app
 ├── README.md
 ├── ARCHITECTURE.md     # system design, DB schema, request flow
 ├── ROADMAP.md          # versioned checklist / review checkpoints
