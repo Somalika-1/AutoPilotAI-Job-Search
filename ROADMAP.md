@@ -7,7 +7,7 @@ Each checkpoint is built and reviewed one at a time — nothing here is built ah
 - [x] **Checkpoint 0** — Repo init, README, ARCHITECTURE, ROADMAP, `.gitignore`, `.env.example`
 - [x] **Checkpoint 1** — Backend skeleton (FastAPI app factory, health check, config loading) + Frontend skeleton (React + Vite + Tailwind + TS + React Router, one page)
 - [x] **Checkpoint 2** — Postgres models + Alembic migrations: `users`, `resumes`, `job_descriptions`, `matches`
-- [ ] **Checkpoint 3** — JWT auth: signup / login / me endpoints
+- [x] **Checkpoint 3** — JWT auth: signup / login / me endpoints
 - [ ] **Checkpoint 4** — Resume upload + text extraction (PyPDF / python-docx)
 - [ ] **Checkpoint 5** — Job description input + OpenAI match score + missing skills (structured output)
 - [ ] **Checkpoint 6** — Cover letter generation

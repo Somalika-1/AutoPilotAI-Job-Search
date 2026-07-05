@@ -2,7 +2,18 @@
 
 
 
-> **Status: V1 in progress — Checkpoint 0 (docs & repo scaffolding)**. See [ROADMAP.md](./ROADMAP.md) for live progress.
+> **Status: V1 in progress — Checkpoint 3 done (auth), Checkpoint 4 (resume upload) next**. See [ROADMAP.md](./ROADMAP.md) for live progress.
+
+## Docs
+
+| Doc | What's in it |
+|---|---|
+| [HLD.md](./HLD.md) | One-page system diagram — components and how they talk to each other |
+| [ARCHITECTURE.md](./ARCHITECTURE.md) | Folder structure, DB schema, design principles, deployment plan |
+| [FLOWS.md](./FLOWS.md) | User flows + technical data flow, step by step, per feature |
+| [API.md](./API.md) | Endpoint reference — request/response shape for what's actually built |
+| [ROADMAP.md](./ROADMAP.md) | Versioned checklist of checkpoints, what's done vs. planned |
+| [V1.md](./V1.md) | Implementation log — what was built, why, how, per checkpoint (the detailed build history) |
 
 An AI-powered career assistant that analyzes resumes against job descriptions using LLM-based matching, surfaces missing skills, and drafts tailored cover letters. Built as a portfolio project to go beyond "used ChatGPT" and demonstrate real product + API integration engineering.
 
@@ -23,7 +34,7 @@ Later versions add legitimate job-board API search, saved jobs, application trac
 | Frontend | React (Vite) + TypeScript + Tailwind CSS + React Router | Backend is a separate FastAPI API, so the frontend is a pure SPA — no need for Next.js's SSR/server-actions/API-routes, which would go unused here |
 | Backend | FastAPI (Python) | Clean API structure, strongest ecosystem for AI integration |
 | Database | PostgreSQL | Relational data (users, resumes, jobs, matches) fits well; battle-tested |
-| Auth | Hand-rolled JWT (FastAPI + passlib + python-jose) | Demonstrates understanding of auth mechanics, not just wiring a SaaS |
+| Auth | Hand-rolled JWT (FastAPI + bcrypt + PyJWT) | Demonstrates understanding of auth mechanics, not just wiring a SaaS |
 | AI | OpenAI API (`gpt-4o-mini` / `gpt-4.1-mini`), structured outputs | Resume analysis, JD matching, cover letter generation |
 | File processing | PyPDF, python-docx | Resume text extraction |
 | Job sourcing (V2+) | Public job-board APIs (Adzuna, RemoteOK, Arbeitnow, USAJobs, Greenhouse/Lever) | Legal, stable, no ToS/scraping risk |
@@ -38,14 +49,18 @@ autopilot-ai/
 ├── backend/            # FastAPI app (see ARCHITECTURE.md for internal layout)
 ├── frontend/           # React (Vite) app
 ├── README.md
-├── ARCHITECTURE.md     # system design, DB schema, request flow
+├── HLD.md              # one-page system diagram
+├── ARCHITECTURE.md     # system design, DB schema, folder layout
+├── FLOWS.md            # user flows + data flow, step by step
+├── API.md              # endpoint reference
 ├── ROADMAP.md          # versioned checklist / review checkpoints
+├── V1.md               # implementation log (what/why/how per checkpoint)
 └── .env.example
 ```
 
 ## Local setup
 
-Backend and frontend skeletons exist as of Checkpoint 1 (no DB/auth/AI wiring yet — see [V1.md](./V1.md) for what's actually implemented so far).
+Backend has a working DB (Postgres/Neon) and JWT auth as of Checkpoint 3; resume upload/AI matching/cover letters aren't built yet — see [V1.md](./V1.md) for exactly what's implemented so far, and [API.md](./API.md) for the endpoints that exist right now.
 
 ```
 # backend

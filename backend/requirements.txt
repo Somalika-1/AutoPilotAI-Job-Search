@@ -1,8 +1,11 @@
 fastapi
 uvicorn[standard]
 pydantic-settings
+pydantic[email]
 pytest
 httpx
 sqlalchemy
 alembic
 psycopg[binary]
+bcrypt
+pyjwt

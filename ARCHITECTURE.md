@@ -16,6 +16,7 @@ autopilot-ai/
 │   │   ├── config.py            # env/settings (pydantic-settings)
 │   │   ├── database.py          # SQLAlchemy engine/session
 │   │   ├── models/               # SQLAlchemy models (one file per table or grouped)
+│   │   ├── schemas/               # Pydantic request/response DTOs (separate from DB models)
 │   │   ├── routes/               # API routers: auth, resumes, jobs, matches, cover_letters
 │   │   ├── services/
 │   │   │   ├── resume_parser/    # PyPDF / python-docx text extraction
@@ -89,18 +90,7 @@ Only `users`, `resumes`, `job_descriptions`, and `matches` are built in V1. `app
 
 ## Core request flow (V1)
 
-```
-1. POST /auth/signup, /auth/login          -> JWT issued
-2. POST /resumes/upload (multipart, JWT)   -> extract text (PyPDF/docx) -> store in `resumes`
-3. POST /matches (resume_id, jd_text, JWT) ->
-       a. store `job_descriptions` row
-       b. call OpenAI with resume text + JD text, structured output schema:
-          { "score": int, "missing_skills": string[], "strengths": string[] }
-       c. store result in `matches`
-4. POST /matches/{id}/cover-letter (JWT)   -> OpenAI call using resume + JD + match ->
-       cover letter text -> stored on `matches.cover_letter`
-5. Frontend renders score, skills, strengths, and cover letter
-```
+See FLOWS.md for the step-by-step user flow + data flow diagrams, and API.md for the exact request/response shape of each endpoint. Short version: signup/login issues a JWT → upload a resume (extracted server-side) → submit a job description alongside a resume to get a structured OpenAI match result → optionally generate a cover letter from that match.
 
 ## AI integration notes
 
