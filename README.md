@@ -45,7 +45,25 @@ autopilot-ai/
 
 ## Local setup
 
-Not yet applicable — backend/frontend scaffolding lands in Checkpoint 1. This section will be filled in with real run instructions (`venv` setup, `npm install`, env vars, `alembic upgrade`, etc.) as each piece is built.
+Backend and frontend skeletons exist as of Checkpoint 1 (no DB/auth/AI wiring yet — see [V1.md](./V1.md) for what's actually implemented so far).
+
+```
+# backend
+cd backend
+python -m venv venv
+./venv/Scripts/activate   # or source venv/bin/activate on macOS/Linux
+pip install -r requirements.txt
+cp ../.env.example .env   # then fill in real values
+uvicorn app.main:app --reload
+
+# frontend (separate terminal)
+cd frontend
+npm install
+cp .env.example .env
+npm run dev
+```
+
+This will be extended with DB migrations, auth, etc. as later checkpoints land.
 
 ## Why this project
 
