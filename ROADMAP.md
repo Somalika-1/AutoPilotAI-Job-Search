@@ -1,0 +1,32 @@
+# Roadmap / Review Checkpoints
+
+Each checkpoint is built and reviewed one at a time — nothing here is built ahead of where the checkmarks stop.
+
+## V1 — MVP core
+
+- [x] **Checkpoint 0** — Repo init, README, ARCHITECTURE, ROADMAP, `.gitignore`, `.env.example`
+- [ ] **Checkpoint 1** — Backend skeleton (FastAPI app factory, health check, config loading) + Frontend skeleton (Next.js + Tailwind + TS, one page)
+- [ ] **Checkpoint 2** — Postgres models + Alembic migrations: `users`, `resumes`, `job_descriptions`, `matches`
+- [ ] **Checkpoint 3** — JWT auth: signup / login / me endpoints
+- [ ] **Checkpoint 4** — Resume upload + text extraction (PyPDF / python-docx)
+- [ ] **Checkpoint 5** — Job description input + OpenAI match score + missing skills (structured output)
+- [ ] **Checkpoint 6** — Cover letter generation
+- [ ] **Checkpoint 7** — Frontend flows wired end-to-end (upload → paste JD → view results)
+- [ ] **Checkpoint 8** — Deploy: Vercel (frontend) + Railway/Render (backend + Postgres)
+
+## V2 — Job discovery
+
+- [ ] Integrate legitimate job-board APIs: Adzuna, RemoteOK, Arbeitnow, USAJobs, Greenhouse/Lever
+- [ ] Filter by date posted / location
+- [ ] Save jobs to DB, list saved jobs per user
+
+## V3 — Tracking & automation
+
+- [ ] Application status tracking (`applications` table: saved / applied / interviewing / rejected / offer)
+- [ ] Analytics dashboard (match scores over time, application funnel)
+- [ ] *Optional stretch:* Playwright auto-apply — own accounts only, manual confirm-before-submit, heavily rate-limited. Not a requirement for a strong resume entry; only build if the earlier checkpoints are solid and there's time left.
+
+## Notes
+
+- Embeddings-based semantic matching is intentionally deferred past V1 — see ARCHITECTURE.md. Add only if keyword/LLM-only matching proves too shallow in practice.
+- Redis caching: not planned unless a specific performance problem shows up.
