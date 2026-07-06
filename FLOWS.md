@@ -72,21 +72,30 @@ Nothing about "who's logged in" is stored server-side — a validly-signed, non-
 
 ## Flow 2 — Upload resume, match against a job description
 
-**Status: planned (Checkpoints 4–5)**
+**Status: resume upload implemented (Checkpoint 4); matching not yet built (Checkpoint 5)**
 
 User flow:
-1. Logged-in user uploads a resume file (PDF or DOCX)
-2. User pastes in a job description
-3. User sees a match score, a list of missing skills, and a list of strengths
+1. Logged-in user uploads a resume file (PDF or DOCX) — **implemented**
+2. User pastes in a job description — **planned**
+3. User sees a match score, a list of missing skills, and a list of strengths — **planned**
 
-Planned data flow:
+Data flow (upload half — implemented):
+```
+Browser                     FastAPI backend                     Postgres
+  │ POST /resumes/upload         │                                  │
+  │ (multipart file + JWT) ────▶ │ read file bytes, reject if       │
+  │                              │ >5MB or not .pdf/.docx           │
+  │                              │ extract_text() (pypdf/python-docx)│
+  │                              │ reject (400) if no text found    │
+  │                              │ INSERT INTO resumes ───────────▶ │
+  │ ◀─────────────────────────── │ { id, original_filename,         │
+  │                              │   extracted_text, uploaded_at }  │
+```
+Full request/response shape: see API.md. What was built and why (library choice, size limit, error cases): see V1.md's Checkpoint 4.
+
+Planned data flow (matching half — Checkpoint 5):
 ```
 Browser                     FastAPI backend                  Postgres            OpenAI
-  │ POST /resumes/upload         │                               │                  │
-  │ (multipart file + JWT) ────▶ │ extract text (PyPDF/docx)     │                  │
-  │                              │ INSERT INTO resumes ────────▶ │                  │
-  │ ◀─────────────────────────── │ { id, filename, ... }         │                  │
-  │                              │                                │                  │
   │ POST /matches                │                                │                  │
   │ { resume_id, jd_text } ────▶ │ INSERT INTO job_descriptions ▶ │                  │
   │                              │ call OpenAI with resume text  │                  │

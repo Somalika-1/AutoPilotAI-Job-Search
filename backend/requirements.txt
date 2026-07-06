@@ -9,3 +9,6 @@ alembic
 psycopg[binary]
 bcrypt
 pyjwt
+pypdf
+python-docx
+python-multipart

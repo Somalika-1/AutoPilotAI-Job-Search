@@ -83,10 +83,39 @@ Authorization: Bearer <access_token>
 
 ---
 
+### `POST /resumes/upload`
+
+Upload a resume file (`.pdf` or `.docx`, max 5MB), extract its text, and store it. Requires auth.
+
+**Headers**
+```
+Authorization: Bearer <access_token>
+Content-Type: multipart/form-data
+```
+
+**Request**: multipart form with one field, `file`, containing the resume file.
+
+**Response `201`**
+```json
+{
+  "id": 1,
+  "original_filename": "resume.pdf",
+  "extracted_text": "Jane Doe\nBackend Engineer...",
+  "uploaded_at": "2026-07-06T09:12:21.541695Z"
+}
+```
+
+**Errors**
+| Status | When |
+|---|---|
+| `400` | File isn't `.pdf`/`.docx`, exceeds 5MB, or no text could be extracted (e.g. a scanned/image-only PDF with no text layer) |
+| `401` | Missing, invalid, or expired token |
+
+---
+
 ## Planned endpoints (not yet built — see ROADMAP.md)
 
 | Method & path | Checkpoint |
 |---|---|
-| `POST /resumes/upload` | 4 |
 | `POST /matches` | 5 |
 | `POST /matches/{id}/cover-letter` | 6 |
