@@ -3,7 +3,7 @@
 ## Design principles
 
 1. **No infrastructure before features.** Every piece of tech (Postgres, JWT, Playwright, embeddings) is added at the checkpoint where it's actually needed, not up front.
-2. **Structured LLM I/O.** All OpenAI calls that feed application logic use `response_format={"type": "json_schema", ...}` (structured outputs), not "please return JSON" prompted in free text. This is the single biggest reliability win for beginners integrating LLMs into real apps.
+2. **Structured LLM I/O.** All LLM calls that feed application logic constrain the response to a Pydantic schema (structured outputs), not "please return JSON" prompted in free text. This is the single biggest reliability win for beginners integrating LLMs into real apps.
 3. **One relational schema, designed once.** Auth lands in V1 specifically so the schema (below) doesn't need a breaking migration when V2/V3 add saved jobs and application tracking.
 
 ## Folder structure
@@ -20,7 +20,7 @@ autopilot-ai/
 │   │   ├── routes/               # API routers: auth, resumes, jobs, matches, cover_letters
 │   │   ├── services/
 │   │   │   ├── resume_parser/    # PyPDF / python-docx text extraction
-│   │   │   ├── ai_engine/        # OpenAI client wrapper, prompt templates, structured schemas
+│   │   │   ├── ai_engine/        # Gemini client wrapper, prompt templates, structured schemas
 │   │   │   └── job_scraper/      # V2+: job-board API clients (Adzuna, RemoteOK, etc.)
 │   │   ├── auth/                  # JWT creation/verification, password hashing, dependencies
 │   │   └── utils/
@@ -90,11 +90,11 @@ Only `users`, `resumes`, `job_descriptions`, and `matches` are built in V1. `app
 
 ## Core request flow (V1)
 
-See FLOWS.md for the step-by-step user flow + data flow diagrams, and API.md for the exact request/response shape of each endpoint. Short version: signup/login issues a JWT → upload a resume (extracted server-side) → submit a job description alongside a resume to get a structured OpenAI match result → optionally generate a cover letter from that match.
+See FLOWS.md for the step-by-step user flow + data flow diagrams, and API.md for the exact request/response shape of each endpoint. Short version: signup/login issues a JWT → upload a resume (extracted server-side) → submit a job description alongside a resume to get a structured Gemini match result → optionally generate a cover letter from that match.
 
 ## AI integration notes
 
-- Default model: `gpt-4o-mini` (cost-effective for iteration); configurable via `OPENAI_MODEL` env var.
+- Provider: **Google Gemini** (`google-genai` SDK), default model `gemini-2.0-flash`, configurable via `GEMINI_MODEL` env var. Originally planned as OpenAI (`gpt-4o-mini`); switched during Checkpoint 5/6 because OpenAI now requires a payment method with no free tier, while Gemini's free tier (via Google AI Studio) needs no card and its SDK supports the same "constrain the response to a Pydantic model" structured-output pattern — see V1.md's Checkpoint 5 for the full reasoning. `MatchResult`/`CoverLetterResult` (the actual contracts) didn't change, only the client calling them.
 - All prompts live in `backend/app/services/ai_engine/prompts.py` as functions, not inlined in route handlers — keeps routes thin and prompts reviewable/testable in isolation.
 - Embeddings/semantic search are **not** part of V1. If keyword-ish matching proves too shallow later, add an embeddings-based similarity step as an additive enhancement to the existing `matches` flow — not a rewrite.
 

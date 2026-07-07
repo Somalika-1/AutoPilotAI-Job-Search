@@ -2,7 +2,7 @@
 
 
 
-> **Status: V1 in progress — Checkpoint 3 done (auth), Checkpoint 4 (resume upload) next**. See [ROADMAP.md](./ROADMAP.md) for live progress.
+> **Status: V1 in progress — Checkpoints 0-6 done (auth, DB, resume upload, AI matching, cover letters), Checkpoint 7 (frontend) next**. See [ROADMAP.md](./ROADMAP.md) for live progress.
 
 ## Docs
 
@@ -35,7 +35,7 @@ Later versions add legitimate job-board API search, saved jobs, application trac
 | Backend | FastAPI (Python) | Clean API structure, strongest ecosystem for AI integration |
 | Database | PostgreSQL | Relational data (users, resumes, jobs, matches) fits well; battle-tested |
 | Auth | Hand-rolled JWT (FastAPI + bcrypt + PyJWT) | Demonstrates understanding of auth mechanics, not just wiring a SaaS |
-| AI | OpenAI API (`gpt-4o-mini` / `gpt-4.1-mini`), structured outputs | Resume analysis, JD matching, cover letter generation |
+| AI | Google Gemini API (`gemini-2.0-flash`), structured outputs | Resume analysis, JD matching, cover letter generation. Switched from OpenAI mid-Checkpoint-5/6 — see V1.md — since Gemini's free tier needs no payment method, and its SDK supports the same Pydantic-schema structured-output pattern |
 | File processing | PyPDF, python-docx | Resume text extraction |
 | Job sourcing (V2+) | Public job-board APIs (Adzuna, RemoteOK, Arbeitnow, USAJobs, Greenhouse/Lever) | Legal, stable, no ToS/scraping risk |
 | Deployment | Vercel (frontend static build), Railway/Render (backend + Postgres) | Free/cheap tiers, simple CI |

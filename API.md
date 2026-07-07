@@ -113,9 +113,60 @@ Content-Type: multipart/form-data
 
 ---
 
-## Planned endpoints (not yet built — see ROADMAP.md)
+### `POST /matches`
 
-| Method & path | Checkpoint |
+Score a resume against a job description using Gemini. Requires auth.
+
+**Request**
+```json
+{ "resume_id": 1, "job_description_text": "Looking for a backend engineer with Python and Postgres experience." }
+```
+
+**Response `201`**
+```json
+{
+  "id": 1,
+  "resume_id": 1,
+  "job_description_id": 1,
+  "score": 78,
+  "missing_skills": ["Kubernetes", "GraphQL"],
+  "strengths": ["Python", "PostgreSQL", "REST APIs"],
+  "cover_letter": null,
+  "created_at": "2026-07-06T10:00:00.000000Z"
+}
+```
+`cover_letter` is always `null` until Checkpoint 6.
+
+**Errors**
+| Status | When |
 |---|---|
-| `POST /matches` | 5 |
-| `POST /matches/{id}/cover-letter` | 6 |
+| `401` | Missing, invalid, or expired token |
+| `404` | `resume_id` doesn't exist, or belongs to a different user (both look identical on purpose — see V1.md) |
+| `502` | The Gemini API call itself failed (network issue, bad key, rate limit, etc.) |
+
+---
+
+### `POST /matches/{match_id}/cover-letter`
+
+Generate a tailored cover letter for an existing match, using its resume + job description. Requires auth.
+
+**Response `200`** — the full, updated match (same shape as `POST /matches`, now with `cover_letter` populated):
+```json
+{
+  "id": 1,
+  "resume_id": 1,
+  "job_description_id": 1,
+  "score": 78,
+  "missing_skills": ["Kubernetes", "GraphQL"],
+  "strengths": ["Python", "PostgreSQL", "REST APIs"],
+  "cover_letter": "Dear Hiring Manager, ...",
+  "created_at": "2026-07-06T10:00:00.000000Z"
+}
+```
+
+**Errors**
+| Status | When |
+|---|---|
+| `401` | Missing, invalid, or expired token |
+| `404` | `match_id` doesn't exist, or belongs to a different user |
+| `502` | The Gemini API call itself failed |

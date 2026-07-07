@@ -9,8 +9,8 @@ Each checkpoint is built and reviewed one at a time — nothing here is built ah
 - [x] **Checkpoint 2** — Postgres models + Alembic migrations: `users`, `resumes`, `job_descriptions`, `matches`
 - [x] **Checkpoint 3** — JWT auth: signup / login / me endpoints
 - [x] **Checkpoint 4** — Resume upload + text extraction (PyPDF / python-docx)
-- [ ] **Checkpoint 5** — Job description input + OpenAI match score + missing skills (structured output)
-- [ ] **Checkpoint 6** — Cover letter generation
+- [x] **Checkpoint 5** — Job description input + Gemini match score + missing skills (structured output)
+- [x] **Checkpoint 6** — Cover letter generation
 - [ ] **Checkpoint 7** — Frontend flows wired end-to-end (upload → paste JD → view results)
 - [ ] **Checkpoint 8** — Deploy: Vercel (frontend) + Railway/Render (backend + Postgres)
 

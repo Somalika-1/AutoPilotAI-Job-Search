@@ -12,3 +12,4 @@ pyjwt
 pypdf
 python-docx
 python-multipart
+google-genai

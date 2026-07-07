@@ -72,12 +72,12 @@ Nothing about "who's logged in" is stored server-side — a validly-signed, non-
 
 ## Flow 2 — Upload resume, match against a job description
 
-**Status: resume upload implemented (Checkpoint 4); matching not yet built (Checkpoint 5)**
+**Status: implemented and live-verified (Checkpoints 4 and 5)**
 
 User flow:
 1. Logged-in user uploads a resume file (PDF or DOCX) — **implemented**
-2. User pastes in a job description — **planned**
-3. User sees a match score, a list of missing skills, and a list of strengths — **planned**
+2. User pastes in a job description — **implemented**
+3. User sees a match score, a list of missing skills, and a list of strengths — **implemented and live-verified against the real Gemini API** (real run: score 85, correctly identified missing Kubernetes/GraphQL and matched Java/Spring Boot/MySQL strengths — see V1.md's "Provider swap" section)
 
 Data flow (upload half — implemented):
 ```
@@ -93,42 +93,54 @@ Browser                     FastAPI backend                     Postgres
 ```
 Full request/response shape: see API.md. What was built and why (library choice, size limit, error cases): see V1.md's Checkpoint 4.
 
-Planned data flow (matching half — Checkpoint 5):
+Data flow (matching half — implemented, `resume.user_id` ownership check omitted below for brevity, see API.md):
 ```
-Browser                     FastAPI backend                  Postgres            OpenAI
+Browser                     FastAPI backend                  Postgres            Gemini
   │ POST /matches                │                                │                  │
-  │ { resume_id, jd_text } ────▶ │ INSERT INTO job_descriptions ▶ │                  │
-  │                              │ call OpenAI with resume text  │                  │
-  │                              │ + JD text, structured output ─┼─────────────────▶│
+  │ { resume_id, jd_text } ────▶ │ 404 if resume doesn't belong   │                  │
+  │                              │ to the caller                 │                  │
+  │                              │ INSERT INTO job_descriptions ▶ │                  │
+  │                              │ generate_content() call:      │                  │
+  │                              │ resume + JD text, config =    │                  │
+  │                              │ response_schema=MatchResult ──┼─────────────────▶│
   │                              │ ◀──────────────────────────────────────────────── │
+  │                              │ response.parsed → MatchResult │                  │
   │                              │ { score, missing_skills[],    │                  │
   │                              │   strengths[] }                │                  │
   │                              │ INSERT INTO matches ─────────▶ │                  │
   │ ◀─────────────────────────── │ match result                  │                  │
 ```
+What was built and why (structured outputs via `.parse()`, mocked vs. live testing, ownership-check reasoning): see V1.md's Checkpoint 5.
 
 ## Flow 3 — Generate a tailored cover letter
 
-**Status: planned (Checkpoint 6)**
+**Status: implemented and live-verified (Checkpoint 6)**
 
 User flow:
-1. From a match result, user clicks "Generate cover letter"
-2. User sees (and can copy) a cover letter tailored to that resume + job description
+1. From a match result, user clicks "Generate cover letter" — **implemented**
+2. User sees (and can copy) a cover letter tailored to that resume + job description — **implemented and live-verified**: real run produced a coherent, on-topic letter referencing only real resume content, no invented experience, no placeholder brackets
 
-Planned data flow:
+Data flow:
 ```
-Browser                        FastAPI backend                 Postgres          OpenAI
+Browser                        FastAPI backend                 Postgres          Gemini
   │ POST /matches/{id}/cover-letter │                              │                │
-  │ (JWT) ─────────────────────▶   │ load resume + JD text for    │                │
+  │ (JWT) ─────────────────────▶   │ 404 if match doesn't belong  │                │
+  │                                 │ to caller (via match.resume  │                │
+  │                                 │ .user_id)                    │                │
+  │                                 │ load resume + JD text for    │                │
   │                                 │ this match ─────────────────▶│                │
-  │                                 │ call OpenAI with resume +    │                │
-  │                                 │ JD + match context ──────────┼───────────────▶│
+  │                                 │ generate_content() call:     │                │
+  │                                 │ resume + JD, config =        │                │
+  │                                 │ response_schema=              │                │
+  │                                 │ CoverLetterResult ────────────┼───────────────▶│
   │                                 │ ◀───────────────────────────────────────────── │
+  │                                 │ already-parsed                │                │
   │                                 │ { cover_letter: string }     │                │
   │                                 │ UPDATE matches SET           │                │
   │                                 │ cover_letter = ... ──────────▶│                │
-  │ ◀───────────────────────────── │ cover letter text             │                │
+  │ ◀───────────────────────────── │ full match incl. cover letter │                │
 ```
+What was built and why (structured single-field output, ownership check via `match.resume.user_id`): see V1.md's Checkpoint 6.
 
 ## Flow 4 — Job discovery (V2) and application tracking (V3)
 
