@@ -1,1 +1,52 @@
 @import "tailwindcss";
+
+:root {
+  --page-bg: #f9f9f7;
+  --surface: #fcfcfb;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #898781;
+  --border: rgba(11, 11, 11, 0.1);
+  --gridline: #e1e0d9;
+  --accent: #2a78d6;
+  --accent-button-bg: #1c5cab;
+  --accent-button-bg-hover: #184f95;
+  --accent-button-text: #ffffff;
+
+  --status-good: #0ca30c;
+  --status-good-text: #006300;
+  --status-good-wash: rgba(12, 163, 12, 0.1);
+  --status-warning: #fab219;
+  --status-warning-text: #8a5a00;
+  --status-critical: #d03b3b;
+  --status-critical-wash: rgba(208, 59, 59, 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page-bg: #0d0d0d;
+    --surface: #1a1a19;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted: #898781;
+    --border: rgba(255, 255, 255, 0.1);
+    --gridline: #2c2c2a;
+    --accent: #3987e5;
+    --accent-button-bg: #3987e5;
+    --accent-button-bg-hover: #5598e7;
+    --accent-button-text: #0b0b0b;
+
+    --status-good: #0ca30c;
+    --status-good-text: #0ca30c;
+    --status-good-wash: rgba(12, 163, 12, 0.15);
+    --status-warning: #fab219;
+    --status-warning-text: #fab219;
+    --status-critical: #e66767;
+    --status-critical-wash: rgba(230, 103, 103, 0.15);
+  }
+}
+
+body {
+  background-color: var(--page-bg);
+  color: var(--text-primary);
+}

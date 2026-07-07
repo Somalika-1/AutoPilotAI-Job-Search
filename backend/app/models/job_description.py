@@ -10,7 +10,7 @@ class JobDescription(Base):
     __tablename__ = "job_descriptions"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     source: Mapped[str] = mapped_column(String, nullable=False, default="manual")
     title: Mapped[str | None] = mapped_column(String, nullable=True)
     company: Mapped[str | None] = mapped_column(String, nullable=True)

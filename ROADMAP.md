@@ -11,7 +11,7 @@ Each checkpoint is built and reviewed one at a time — nothing here is built ah
 - [x] **Checkpoint 4** — Resume upload + text extraction (PyPDF / python-docx)
 - [x] **Checkpoint 5** — Job description input + Gemini match score + missing skills (structured output)
 - [x] **Checkpoint 6** — Cover letter generation
-- [ ] **Checkpoint 7** — Frontend flows wired end-to-end (upload → paste JD → view results)
+- [x] **Checkpoint 7** — Frontend flows wired end-to-end (upload → paste JD → view results)
 - [ ] **Checkpoint 8** — Deploy: Vercel (frontend) + Railway/Render (backend + Postgres)
 
 ## V2 — Job discovery

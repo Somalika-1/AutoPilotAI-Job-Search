@@ -29,9 +29,10 @@ autopilot-ai/
 │   └── requirements.txt
 ├── frontend/                       # React + Vite SPA
 │   ├── src/
-│   │   ├── pages/                  # route components (Login, Upload, Dashboard, Results)
-│   │   ├── components/
-│   │   ├── lib/                    # API client (fetch/axios wrapper), shared types
+│   │   ├── pages/                  # Root, Login, Signup, Dashboard (upload+match+cover-letter, one page)
+│   │   ├── components/             # ProtectedRoute (auth-gated route wrapper)
+│   │   ├── context/                # AuthContext: token/user state, persisted in localStorage
+│   │   ├── lib/                    # api.ts - typed fetch client, one function per backend endpoint
 │   │   └── router.tsx              # React Router route definitions
 │   ├── index.html
 │   └── vite.config.ts
@@ -54,14 +55,14 @@ users
 
 resumes
   id (pk)
-  user_id (fk -> users.id)
+  user_id (fk -> users.id, ON DELETE CASCADE)
   original_filename
   extracted_text
   uploaded_at
 
 job_descriptions
   id (pk)
-  user_id (fk -> users.id)
+  user_id (fk -> users.id, ON DELETE CASCADE)
   source            -- "manual" | "adzuna" | "remoteok" | ... (V2+)
   title
   company
@@ -70,8 +71,8 @@ job_descriptions
 
 matches
   id (pk)
-  resume_id (fk -> resumes.id)
-  job_description_id (fk -> job_descriptions.id)
+  resume_id (fk -> resumes.id, ON DELETE CASCADE)
+  job_description_id (fk -> job_descriptions.id, ON DELETE CASCADE)
   score              -- int 0-100
   missing_skills     -- jsonb array
   strengths          -- jsonb array
@@ -87,6 +88,8 @@ applications        -- V3
 ```
 
 Only `users`, `resumes`, `job_descriptions`, and `matches` are built in V1. `applications` is added in V3 when tracking lands.
+
+All child foreign keys cascade on delete — deleting a user removes their resumes, job descriptions, and matches with them. Added after the fact once test data made the lack of it obvious (see V1.md's "Test data cleanup" section); it's also just the correct real-world behavior for account deletion, not only a testing convenience.
 
 ## Core request flow (V1)
 

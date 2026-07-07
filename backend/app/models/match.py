@@ -11,8 +11,8 @@ class Match(Base):
     __tablename__ = "matches"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    resume_id: Mapped[int] = mapped_column(ForeignKey("resumes.id"), nullable=False)
-    job_description_id: Mapped[int] = mapped_column(ForeignKey("job_descriptions.id"), nullable=False)
+    resume_id: Mapped[int] = mapped_column(ForeignKey("resumes.id", ondelete="CASCADE"), nullable=False)
+    job_description_id: Mapped[int] = mapped_column(ForeignKey("job_descriptions.id", ondelete="CASCADE"), nullable=False)
     score: Mapped[int] = mapped_column(Integer, nullable=False)
     missing_skills: Mapped[list[str]] = mapped_column(JSONB, nullable=False, default=list)
     strengths: Mapped[list[str]] = mapped_column(JSONB, nullable=False, default=list)

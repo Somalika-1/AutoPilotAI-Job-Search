@@ -4,12 +4,12 @@ Each flow below shows the **user-facing steps** first, then the **technical data
 
 ## Flow 1 — Sign up & log in
 
-**Status: implemented (Checkpoint 3, backend only — no frontend UI for it yet, Checkpoint 7)**
+**Status: implemented end-to-end (backend Checkpoint 3, frontend Checkpoint 7)**
 
 User flow:
-1. User opens the app, enters email + password to create an account
-2. User logs in with the same credentials
-3. App remembers the user is logged in for subsequent requests
+1. User opens the app, enters email + password to create an account (`/signup`)
+2. User logs in with the same credentials (`/login`)
+3. App remembers the user is logged in for subsequent requests — JWT persisted in `localStorage`, restored on page reload via `AuthContext`
 
 Data flow:
 ```
@@ -70,9 +70,15 @@ Closest Spring Security equivalent: `oauth2_scheme` + `get_current_user` togethe
 
 Nothing about "who's logged in" is stored server-side — a validly-signed, non-expired token *is* the proof, which is why `JWT_SECRET` being a strong random value matters (Checkpoint 3 replaced the `.env.example` placeholder with a real 48-byte random secret — whoever holds that secret can mint tokens for any user id). There's currently no logout/revoke mechanism: a token stays valid until `ACCESS_TOKEN_EXPIRE_MINUTES` (default 60) naturally expires. Real revocation would need short-lived tokens plus a refresh-token flow, or a server-side denylist — neither exists yet, added only if it's actually needed.
 
+### How the frontend half actually works (`AuthContext.tsx`, `ProtectedRoute.tsx`)
+
+- `AuthContext` holds `token` and `user` in React state, initialized by reading `localStorage` once on load (`useState(() => localStorage.getItem(...))`). On mount, if a token exists, it calls `GET /auth/me` to fetch the current user and confirm the token is still valid — if that call fails (expired/invalid token), the token is cleared and the user is treated as logged out.
+- `login()`/`signup()` call the API, store the returned JWT in `localStorage`, and update state — every component reading `useAuth()` re-renders automatically since context changed.
+- `ProtectedRoute` is a layout route (renders `<Outlet />`) that checks `token` from context: while the initial `/auth/me` check is in flight it shows a loading state, then either renders the nested route or redirects to `/login`. This is the client-side equivalent of the backend's `Depends(get_current_user)` — same "check identity before running the protected thing" shape, just running in the browser instead of on the server, and easily bypassed by a motivated user (disabling JS, editing localStorage) since **the frontend check is a UX convenience, not a security boundary** — every actual protected action still requires a valid JWT on the backend regardless of what the React UI shows.
+
 ## Flow 2 — Upload resume, match against a job description
 
-**Status: implemented and live-verified (Checkpoints 4 and 5)**
+**Status: implemented end-to-end, including frontend (Checkpoints 4, 5, 7); backend live-verified against Gemini, frontend verified via build/type-check and direct API tracing — see Checkpoint 7's notes on browser-testing limits**
 
 User flow:
 1. Logged-in user uploads a resume file (PDF or DOCX) — **implemented**
@@ -114,11 +120,11 @@ What was built and why (structured outputs via `.parse()`, mocked vs. live testi
 
 ## Flow 3 — Generate a tailored cover letter
 
-**Status: implemented and live-verified (Checkpoint 6)**
+**Status: implemented end-to-end, including frontend (Checkpoints 6, 7)**
 
 User flow:
 1. From a match result, user clicks "Generate cover letter" — **implemented**
-2. User sees (and can copy) a cover letter tailored to that resume + job description — **implemented and live-verified**: real run produced a coherent, on-topic letter referencing only real resume content, no invented experience, no placeholder brackets
+2. User sees (and can copy via a Copy button, `navigator.clipboard`) a cover letter tailored to that resume + job description — backend live-verified against real Gemini: produced a coherent, on-topic letter referencing only real resume content, no invented experience, no placeholder brackets
 
 Data flow:
 ```

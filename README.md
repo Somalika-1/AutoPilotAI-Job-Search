@@ -2,7 +2,7 @@
 
 
 
-> **Status: V1 in progress — Checkpoints 0-6 done (auth, DB, resume upload, AI matching, cover letters), Checkpoint 7 (frontend) next**. See [ROADMAP.md](./ROADMAP.md) for live progress.
+> **Status: V1 in progress — Checkpoints 0-7 done (full stack: auth, DB, resume upload, AI matching, cover letters, frontend). Checkpoint 8 (deployment) next**. See [ROADMAP.md](./ROADMAP.md) for live progress.
 
 ## Docs
 
@@ -60,7 +60,7 @@ autopilot-ai/
 
 ## Local setup
 
-Backend has a working DB (Postgres/Neon) and JWT auth as of Checkpoint 3; resume upload/AI matching/cover letters aren't built yet — see [V1.md](./V1.md) for exactly what's implemented so far, and [API.md](./API.md) for the endpoints that exist right now.
+Full stack is wired end-to-end as of Checkpoint 7: sign up/log in, upload a resume, paste a job description, get an AI match score + missing skills, generate a cover letter — all through the actual UI, not just `curl`. Not yet done: deployment (Checkpoint 8). See [V1.md](./V1.md) for exactly what's implemented, and [API.md](./API.md) for the endpoint contracts.
 
 ```
 # backend
@@ -78,7 +78,7 @@ cp .env.example .env
 npm run dev
 ```
 
-This will be extended with DB migrations, auth, etc. as later checkpoints land.
+You'll need real `DATABASE_URL` (Neon), `JWT_SECRET`, and `GEMINI_API_KEY` values in `backend/.env` — see `.env.example` and V1.md's Checkpoints 2/3/5 for how to get each one.
 
 ## Why this project
 
