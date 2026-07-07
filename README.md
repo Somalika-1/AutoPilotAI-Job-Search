@@ -14,6 +14,7 @@
 | [API.md](./API.md) | Endpoint reference — request/response shape for what's actually built |
 | [ROADMAP.md](./ROADMAP.md) | Versioned checklist of checkpoints, what's done vs. planned |
 | [V1.md](./V1.md) | Implementation log — what was built, why, how, per checkpoint (the detailed build history) |
+| [INTERVIEW_PREP.md](./INTERVIEW_PREP.md) | Rehearsal script for talking about this project — pitch, tech stack reasoning, alternatives considered, real challenges faced, curveball Q&A |
 
 An AI-powered career assistant that analyzes resumes against job descriptions using LLM-based matching, surfaces missing skills, and drafts tailored cover letters. Built as a portfolio project to go beyond "used ChatGPT" and demonstrate real product + API integration engineering.
 
