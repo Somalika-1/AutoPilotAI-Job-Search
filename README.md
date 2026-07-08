@@ -2,7 +2,7 @@
 
 
 
-> **Status: V1 in progress — Checkpoints 0-7 done (full stack: auth, DB, resume upload, AI matching, cover letters, frontend). Checkpoint 8 (deployment) next**. See [ROADMAP.md](./ROADMAP.md) for live progress.
+> **Status: V1 in progress — Checkpoints 0-7 done (full stack: auth, DB, resume upload, AI matching, cover letters, frontend). Checkpoint 8 (deployment) config is prepared (Dockerfile, render.yaml, vercel.json) — the live Render/Vercel deploy is a manual one-time dashboard step, see V1.md's Checkpoint 8**. See [ROADMAP.md](./ROADMAP.md) for live progress.
 
 ## Docs
 
