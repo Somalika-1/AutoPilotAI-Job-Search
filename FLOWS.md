@@ -148,6 +148,66 @@ Browser                        FastAPI backend                 Postgres         
 ```
 What was built and why (structured single-field output, ownership check via `match.resume.user_id`): see V1.md's Checkpoint 6.
 
-## Flow 4 — Job discovery (V2) and application tracking (V3)
+## Flow 4 — Job discovery (V2)
 
-**Status: planned, not yet designed in detail — will be added here once Checkpoints 9+ (V2/V3) start.** See ROADMAP.md for what's planned at a feature level.
+**Status: planned, not yet built.** Design below matches ARCHITECTURE.md's provider-adapter pattern and API.md's "Planned (V2)" contracts; will be marked implemented section-by-section as Checkpoints 9-13 land.
+
+User flow:
+1. Logged-in user searches jobs by keyword (+ optional location / date-posted filter) — **planned, Checkpoints 9-10**
+2. User sees a merged results list from RemoteOK, Arbeitnow, Adzuna, and USAJobs — **planned, Checkpoints 9-10**
+3. User saves a result, or feeds it straight into the existing match flow (Flow 2) instead of pasting a JD by hand — **planned, Checkpoints 11, 13**
+4. User views/removes their saved jobs on a separate page — **planned, Checkpoints 12-13**
+
+Data flow (search — planned):
+```
+Browser                     FastAPI backend                RemoteOK / Arbeitnow / Adzuna / USAJobs
+  │ GET /jobs/search             │                                       │
+  │ ?query=&location=&date ────▶ │ call each provider's search()        │
+  │                              │ (adapter per provider) ─────────────▶│
+  │                              │ ◀───────────────────────────────────│
+  │                              │ map each response → JobListing       │
+  │ ◀─────────────────────────── │ merged list, not persisted           │
+```
+
+Data flow (save — planned):
+```
+Browser                     FastAPI backend                     Postgres
+  │ POST /jobs/save              │                                  │
+  │ { JobListing } ────────────▶ │ 409 if (user, source,            │
+  │                              │ external_id) already saved       │
+  │                              │ INSERT INTO job_descriptions ──▶ │
+  │ ◀─────────────────────────── │ saved job row                    │
+```
+
+Full request/response shapes: see API.md's "Planned (V2)" section. What gets built and why, once each checkpoint actually lands: see V2.md.
+
+## Flow 5 — Priority-company alerts (V3)
+
+**Status: planned, not yet built.** Design matches ARCHITECTURE.md's "Priority-company alerts" section and API.md's "Planned (V3)" contracts.
+
+User flow:
+1. User adds a priority company: name + ATS provider (Greenhouse/Lever/Ashby) + board token from that company's careers page URL — **planned, Checkpoint 14**
+2. In the background, on a schedule (not user-initiated), the app checks each tracked company for new postings, scores any against the user's resume, and emails the user when a new posting scores well — **planned, Checkpoints 15-17**
+3. User can also view alerts in-app on an "Alerts" page, and manage their tracked-company list — **planned, Checkpoint 18**
+
+Data flow (the scheduled poll — planned):
+```
+GitHub Actions          FastAPI backend                  ATS API              Postgres            Gemini          Email provider
+  │ (cron, e.g. every 6h) │                                  │                    │                  │                 │
+  │ POST /internal/       │                                  │                    │                  │                 │
+  │ poll-companies ─────▶ │ for each tracked_company:        │                    │                  │                 │
+  │ (shared secret)       │  fetch_postings(provider,        │                    │                  │                 │
+  │                       │  board_token) ──────────────────▶│                    │                  │                 │
+  │                       │ ◀─────────────────────────────── │                    │                  │                 │
+  │                       │  diff vs company_postings ───────┼───────────────────▶│                  │                 │
+  │                       │  (unseen external_ids only)      │                    │                  │                 │
+  │                       │  score_resume_against_job() for  │                    │                  │                 │
+  │                       │  each new posting ────────────────┼────────────────────┼─────────────────▶│                 │
+  │                       │  ◀──────────────────────────────────────────────────────────────────────  │                 │
+  │                       │  INSERT alerts WHERE score ≥      │                    │                  │                 │
+  │                       │  threshold ───────────────────────┼───────────────────▶│                  │                 │
+  │                       │  send email per new alert ─────────────────────────────┼──────────────────┼────────────────▶│
+  │ ◀──────────────────── │  summary counts                  │                    │                  │                 │
+```
+
+Full request/response shapes: see API.md's "Planned (V3)" section. What gets built and why, once each checkpoint actually lands: see V3.md.

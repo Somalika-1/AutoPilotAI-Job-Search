@@ -2,7 +2,9 @@
 
 
 
-> **Status: V1 in progress — Checkpoints 0-7 done (full stack: auth, DB, resume upload, AI matching, cover letters, frontend). Checkpoint 8 (deployment) config is prepared (Dockerfile, render.yaml, vercel.json) — the live Render/Vercel deploy is a manual one-time dashboard step, see V1.md's Checkpoint 8**. See [ROADMAP.md](./ROADMAP.md) for live progress.
+> **Status: V1 complete and live — full stack (auth, DB, resume upload, AI matching, cover letters, frontend) deployed to Vercel + Render.** V2 (job discovery) is next, checkpoints 9-13. See [ROADMAP.md](./ROADMAP.md) for live progress.
+>
+> Live: [frontend](https://auto-pilot-ai-job-search.vercel.app) · backend on Render
 
 ## Docs
 
@@ -13,7 +15,9 @@
 | [FLOWS.md](./FLOWS.md) | User flows + technical data flow, step by step, per feature |
 | [API.md](./API.md) | Endpoint reference — request/response shape for what's actually built |
 | [ROADMAP.md](./ROADMAP.md) | Versioned checklist of checkpoints, what's done vs. planned |
-| [V1.md](./V1.md) | Implementation log — what was built, why, how, per checkpoint (the detailed build history) |
+| [V1.md](./V1.md) | V1 implementation log — what was built, why, how, per checkpoint (the detailed build history) |
+| [V2.md](./V2.md) | V2 implementation log — same format as V1.md, filled in as Checkpoints 9-13 are built |
+| [V3.md](./V3.md) | V3 implementation log — same format, filled in as Checkpoints 14-20 are built |
 | [INTERVIEW_PREP.md](./INTERVIEW_PREP.md) | Rehearsal script for talking about this project — pitch, tech stack reasoning, alternatives considered, real challenges faced, curveball Q&A |
 
 An AI-powered career assistant that analyzes resumes against job descriptions using LLM-based matching, surfaces missing skills, and drafts tailored cover letters. Built as a portfolio project to go beyond "used ChatGPT" and demonstrate real product + API integration engineering.
@@ -38,8 +42,8 @@ Later versions add legitimate job-board API search, saved jobs, application trac
 | Auth | Hand-rolled JWT (FastAPI + bcrypt + PyJWT) | Demonstrates understanding of auth mechanics, not just wiring a SaaS |
 | AI | Google Gemini API (`gemini-2.0-flash`), structured outputs | Resume analysis, JD matching, cover letter generation. Switched from OpenAI mid-Checkpoint-5/6 — see V1.md — since Gemini's free tier needs no payment method, and its SDK supports the same Pydantic-schema structured-output pattern |
 | File processing | PyPDF, python-docx | Resume text extraction |
-| Job sourcing (V2+) | Public job-board APIs (Adzuna, RemoteOK, Arbeitnow, USAJobs, Greenhouse/Lever) | Legal, stable, no ToS/scraping risk |
-| Deployment | Vercel (frontend static build), Railway/Render (backend + Postgres) | Free/cheap tiers, simple CI |
+| Job sourcing (V2+) | Public job-board APIs (RemoteOK, Arbeitnow, Adzuna, USAJobs) | Legal, stable, no ToS/scraping risk — see ROADMAP.md for why Greenhouse/Lever were dropped from this list |
+| Deployment | Vercel (frontend), Render (backend, Docker), Neon (Postgres) | Free tiers, simple CI, already live |
 
 **Deliberately excluded for now:** local LLMs, vector databases, LangChain/agent frameworks, microservices, Docker-for-everything. These add real value later but would burn weeks of setup before a single feature works. See `ARCHITECTURE.md` for the reasoning.
 
@@ -55,13 +59,15 @@ autopilot-ai/
 ├── FLOWS.md            # user flows + data flow, step by step
 ├── API.md              # endpoint reference
 ├── ROADMAP.md          # versioned checklist / review checkpoints
-├── V1.md               # implementation log (what/why/how per checkpoint)
+├── V1.md               # V1 implementation log (what/why/how per checkpoint)
+├── V2.md               # V2 implementation log (starts filling in at Checkpoint 9)
+├── V3.md               # V3 implementation log (starts filling in at Checkpoint 14)
 └── .env.example
 ```
 
 ## Local setup
 
-Full stack is wired end-to-end as of Checkpoint 7: sign up/log in, upload a resume, paste a job description, get an AI match score + missing skills, generate a cover letter — all through the actual UI, not just `curl`. Not yet done: deployment (Checkpoint 8). See [V1.md](./V1.md) for exactly what's implemented, and [API.md](./API.md) for the endpoint contracts.
+Full stack is wired end-to-end and deployed as of Checkpoint 8: sign up/log in, upload a resume, paste a job description, get an AI match score + missing skills, generate a cover letter — all through the actual UI, not just `curl`. See [V1.md](./V1.md) for exactly what's implemented, and [API.md](./API.md) for the endpoint contracts. V2 (job discovery, Checkpoints 9-13) is next — see [ROADMAP.md](./ROADMAP.md).
 
 ```
 # backend

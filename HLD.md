@@ -22,14 +22,17 @@ One-page picture of the system. For schema/folder detail see ARCHITECTURE.md; fo
                                      └────────────────┘   └──────────────────┘   └──────────────────┘
 ```
 
-V2 adds outbound calls from the backend to public job-board APIs (Adzuna, RemoteOK, Arbeitnow, USAJobs, Greenhouse/Lever). V3 adds an `applications` table and an optional, separately-run Playwright process for auto-apply — deliberately not part of the always-on request path above.
+V2 adds outbound calls from the backend to public job-board APIs — RemoteOK and Arbeitnow first (no key needed), then Adzuna and USAJobs (free API key each) — behind one normalized `JobListing` adapter interface (see ARCHITECTURE.md). Search results are ephemeral (not persisted); only explicitly-saved jobs get written to `job_descriptions`.
+
+V3 adds an `applications` table, plus a priority-company alerts pipeline that's the first part of this system *not* driven by a live user request: a scheduled GitHub Actions workflow calls a shared-secret-guarded `POST /internal/poll-companies` on a timer, which fetches postings from tracked companies' ATS boards (Greenhouse/Lever/Ashby), scores new ones against the user's resume via the same Gemini call used in Flow 2, and emails alerts above a relevance threshold. V3 also adds an optional, separately-run Playwright process for auto-apply — deliberately not part of the always-on request path above.
 
 ## Components and responsibilities
 
 | Component | Responsibility | Talks to |
 |---|---|---|
 | React SPA | Renders UI, holds the JWT (after Checkpoint 7), calls the backend REST API | FastAPI backend only — never touches the DB or Gemini directly |
-| FastAPI backend | Auth, request validation, business logic, the only thing allowed to talk to Postgres or Gemini | Postgres (Neon), Gemini API, (V2) job-board APIs |
+| FastAPI backend | Auth, request validation, business logic, the only thing allowed to talk to Postgres or Gemini | Postgres (Neon), Gemini API, (V2) RemoteOK/Arbeitnow/Adzuna/USAJobs, (V3) Greenhouse/Lever/Ashby, an email provider |
+| GitHub Actions (V3) | Wakes the backend on a schedule since Render's free tier sleeps when idle; has no direct access to the DB or any secret beyond the shared poll secret | `POST /internal/poll-companies` only |
 | PostgreSQL (Neon) | System of record: users, resumes, job descriptions, match results | Backend only |
 | Gemini API | Stateless: given resume text + JD text, returns a structured match score / missing skills / cover letter. Holds no data between calls | Backend only |
 

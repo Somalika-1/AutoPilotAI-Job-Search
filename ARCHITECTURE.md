@@ -63,11 +63,16 @@ resumes
 job_descriptions
   id (pk)
   user_id (fk -> users.id, ON DELETE CASCADE)
-  source            -- "manual" | "adzuna" | "remoteok" | ... (V2+)
+  source            -- "manual" | "remoteok" | "arbeitnow" | "adzuna" | "usajobs" (V2+)
   title
   company
   raw_text
   created_at
+  -- added in V2 Checkpoint 11, nullable, only populated when source != "manual":
+  url               -- listing/apply link
+  location
+  external_id       -- source's own id, for de-dup; unique together with (user_id, source)
+  posted_at         -- when the source says the job was posted (not when we saved it)
 
 matches
   id (pk)
@@ -85,6 +90,32 @@ applications        -- V3
   status             -- "saved" | "applied" | "interviewing" | "rejected" | "offer"
   applied_at
   notes
+
+tracked_companies    -- V3, Checkpoint 14
+  id (pk)
+  user_id (fk -> users.id, ON DELETE CASCADE)
+  company_name        -- display name, user-chosen
+  ats_provider         -- "greenhouse" | "lever" | "ashby"
+  board_token          -- provider-specific slug identifying this company's board
+  created_at
+  -- unique (user_id, ats_provider, board_token): can't track the same board twice
+
+company_postings     -- V3, Checkpoint 15 — "seen postings" ledger per tracked company
+  id (pk)
+  tracked_company_id (fk -> tracked_companies.id, ON DELETE CASCADE)
+  external_id          -- provider's own posting id
+  title
+  url
+  first_seen_at
+  -- unique (tracked_company_id, external_id): dedup across repeated polls
+
+alerts               -- V3, Checkpoint 16 — a posting that scored well against the user's resume
+  id (pk)
+  user_id (fk -> users.id, ON DELETE CASCADE)
+  company_posting_id (fk -> company_postings.id, ON DELETE CASCADE)
+  match_score
+  emailed_at           -- null until the notification email actually sends
+  created_at
 ```
 
 Only `users`, `resumes`, `job_descriptions`, and `matches` are built in V1. `applications` is added in V3 when tracking lands.
@@ -103,13 +134,48 @@ See FLOWS.md for the step-by-step user flow + data flow diagrams, and API.md for
 
 ## Job sourcing strategy (V2+)
 
-LinkedIn/Indeed/Naukri scraping was in the original plan but is demoted: those platforms actively detect and block automated access, and scraping them violates their Terms of Service — a common reason beginner clones of this project stall on IP/account bans instead of shipping. V2 instead uses legitimate, free public job-board APIs: **Adzuna, RemoteOK, Arbeitnow, USAJobs, and Greenhouse/Lever public job boards**. These have no scraping risk and are stable enough to build real filtering (date/location) on top of.
+LinkedIn/Indeed/Naukri scraping was in the original plan but is demoted: those platforms actively detect and block automated access, and scraping them violates their Terms of Service — a common reason beginner clones of this project stall on IP/account bans instead of shipping. V2 instead uses legitimate, free public job-board APIs: **RemoteOK, Arbeitnow, Adzuna, and USAJobs**. These have no scraping risk and are stable enough to build real filtering (date/location) on top of.
+
+RemoteOK and Arbeitnow ship first (Checkpoint 9) because both have public JSON endpoints with no API key/signup required — lowest-friction way to get a real multi-provider search working end to end. Adzuna and USAJobs follow (Checkpoint 10) once that shape is proven; both need a free API key (same "sign up for a free-tier credential" pattern already used for Gemini in Checkpoint 5).
+
+**Greenhouse/Lever are deliberately not part of V2's job-search checkpoints.** Their public APIs are scoped per employer (you fetch *one specific company's* board via that company's board token) — there's no global "search every company's postings for 'backend engineer'" endpoint, which is the actual feature V2 builds. They're kept as a documented option for later — e.g. a V3 application-tracking feature could deep-link to a specific employer's Greenhouse/Lever board — not dropped for lack of value, just because they don't fit this feature's shape.
+
+### Provider adapter pattern
+
+Every provider lives in `backend/app/services/job_scraper/<provider>.py` and exposes one function, `search(query: str, location: str | None, date_posted: str | None) -> list[JobListing]`, mapping that provider's raw response onto one shared Pydantic schema (`app/services/job_scraper/schemas.py`):
+
+```
+JobListing
+  external_id: str    # provider's own id, for de-dup and later "save" persistence
+  source: str          # "remoteok" | "arbeitnow" | "adzuna" | "usajobs"
+  title: str
+  company: str | None
+  location: str | None
+  url: str             # apply/listing link
+  posted_at: datetime | None
+  description: str
+```
+
+`GET /jobs/search` calls every configured provider's `search()` and concatenates the results — same "one normalized contract, many adapters behind it" shape as `ai_engine`'s structured Gemini output, just for external HTTP APIs instead of an LLM. Search results themselves are **not** persisted; only `POST /jobs/save` (Checkpoint 11) writes a specific result into `job_descriptions`.
+
+## Priority-company alerts (V3, Checkpoints 14-18)
+
+Same adapter pattern as job search, applied per-company instead of by keyword: `app/services/job_scraper/ats/<provider>.py` (Greenhouse, Lever, Ashby), each exposing `fetch_postings(board_token: str) -> list[JobListing]` against that provider's public per-company board API — no API key needed for any of the three. A company not on one of these platforms is simply "not trackable" (surfaced to the user as such), rather than falling back to per-site HTML scraping, which would be fragile and legally murkier than the platforms' own public APIs.
+
+**Polling shape**: for each row in `tracked_companies`, call that provider's `fetch_postings()`, diff the result against `company_postings` (the seen-postings ledger, keyed on `external_id`) to find genuinely new listings, then score each new listing against the user's most recent resume using the *existing* `score_resume_against_job()` from `ai_engine` — no new AI integration, just reusing V1's scoring on a different input source. Only scores at/above a relevance threshold get written to `alerts` and emailed, so an unrelated new posting at a tracked company doesn't spam the user just because it exists.
+
+**Scheduling**: Render's free-tier web service spins down after inactivity, so an in-process scheduler (e.g. APScheduler running inside the FastAPI app) can't be trusted to fire on a wall-clock schedule — it only runs while the process happens to be awake. Instead, `POST /internal/poll-companies` is a plain endpoint guarded by a shared-secret header (not a user JWT — nothing about polling is "as" a particular logged-in user), triggered by a **scheduled GitHub Actions workflow** (e.g. every 6 hours) making an authenticated HTTP call to it. The incoming request itself wakes the Render service if it was asleep, so no always-on server is needed. This is the same "push the trigger in from outside" shape as a Spring `@Scheduled` job, just implemented as an external cron caller instead of an in-process timer, to work around the free-tier sleep behavior.
+
+**Notifications**: email via a free-tier transactional provider (Resend or SendGrid) or Gmail SMTP — chosen at build time, whichever has the least setup friction, same "free tier, no card" bar applied to Gemini in V1.
 
 Playwright-based LinkedIn/Indeed automation is kept only as an **optional, explicitly risk-flagged V3 stretch goal** — run only against the user's own account, with a manual confirm-before-submit step and heavy rate-limiting, never for other users or at scale.
 
 ## Deployment
 
-- Frontend → Vercel (static SPA build via `vite build`, served as a static site)
-- Backend → Railway or Render; a `Dockerfile` is added at the deployment checkpoint (end of V1), not before — not needed for local dev with `uvicorn`.
-- Database → managed Postgres on the same platform as the backend (Railway/Render Postgres addon), or Supabase as an alternative.
-- Redis is **not** part of V1; only considered later if caching becomes a measured problem (e.g. repeated identical match requests).
+- Frontend → Vercel (static SPA build via `vite build`), `frontend/vercel.json` rewrites all paths to `index.html` so client-side routes survive a hard refresh.
+- Backend → Render, deployed from `backend/Dockerfile` (Root Directory `backend`, Docker build context = `backend/`); `alembic upgrade head` runs as part of the container's start command before `uvicorn` starts, so every deploy is auto-migrated.
+- Database → the same Neon Postgres provisioned back in Checkpoint 2 — no separate Railway/Render Postgres addon was needed since a working managed DB already existed.
+- CORS origins are env-driven (`CORS_ORIGINS` on the backend), not hardcoded, so the Vercel production URL (and any preview URLs) can be allow-listed without a code change.
+- Redis is **not** part of V1 or V2; only considered later if caching becomes a measured problem (e.g. repeated identical match requests, or job-search rate limits).
+
+See V1.md's Checkpoint 8 for the full deploy log (Render dashboard field gotchas, CORS/double-slash debugging).
