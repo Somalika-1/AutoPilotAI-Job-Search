@@ -173,44 +173,87 @@ Generate a tailored cover letter for an existing match, using its resume + job d
 
 ---
 
-## Planned (V2) — not yet built
-
-Contracts below are the target shape for Checkpoints 9-12 (see ROADMAP.md), written ahead of time so implementation has a spec to build against — same approach used for V1's checkpoints. Not implemented yet; update this section (moving it above the line once real) as each checkpoint lands.
-
 ### `GET /jobs/search`
 
-Search live job-board results across all configured providers. Requires auth. Results are **ephemeral** — not persisted until `POST /jobs/save`.
+Search live job listings across four providers: RemoteOK, Arbeitnow (Checkpoint 9, no key needed), and Adzuna, USAJobs (Checkpoint 10, each needs a free API key — see `.env.example`). Requires auth. Results are **ephemeral** — not persisted until a future "save" endpoint (Checkpoint 11) exists.
 
-**Query params**: `query` (required), `location` (optional), `date_posted` (optional: `24h` | `3d` | `7d` | `30d`)
+A provider whose API key isn't configured is silently skipped (returns no results, not an error), same as a provider whose request fails outright — one missing/flaky provider never breaks the other three's results. RemoteOK and Arbeitnow don't support server-side keyword search, so `query` (and `location`/`date_posted`) are matched in-app for those two after fetching their current feed; Adzuna and USAJobs pass all three through as native query parameters.
+
+**Query params**:
+- `query` (required, non-empty)
+- `location` (optional) — substring-matched against each listing's location
+- `date_posted` (optional) — one of `24h` | `3d` | `7d` | `30d`; listings older than this are excluded
 
 **Response `200`**
 ```json
 [
   {
-    "external_id": "abc123",
+    "external_id": "1134476",
     "source": "remoteok",
-    "title": "Backend Engineer",
-    "company": "Acme Inc",
+    "title": "Lead Data Scientist",
+    "company": "Brigit",
     "location": "Remote",
-    "url": "https://remoteok.com/remote-jobs/abc123",
-    "posted_at": "2026-07-01T00:00:00Z",
+    "url": "https://remoteok.com/remote-jobs/remote-lead-data-scientist-brigit-1134476",
+    "posted_at": "2026-07-07T20:14:56+00:00",
     "description": "..."
   }
 ]
 ```
+`source` is one of `"remoteok"` | `"arbeitnow"` | `"adzuna"` | `"usajobs"`.
+
+**Errors**
+| Status | When |
+|---|---|
+| `401` | Missing, invalid, or expired token |
+| `422` | Missing/empty `query`, or `date_posted` isn't one of the four allowed values |
+
+---
 
 ### `POST /jobs/save`
 
 Persist one search result as a `job_descriptions` row for the current user. Requires auth.
 
-**Request**: the full `JobListing` object from a `/jobs/search` result.
+**Request**: the full `JobListing` object from a `/jobs/search` result (same shape returned by that endpoint).
+```json
+{
+  "external_id": "1134476",
+  "source": "remoteok",
+  "title": "Lead Data Scientist",
+  "company": "Brigit",
+  "location": "Remote",
+  "url": "https://remoteok.com/remote-jobs/remote-lead-data-scientist-brigit-1134476",
+  "posted_at": "2026-07-07T20:14:56+00:00",
+  "description": "..."
+}
+```
 
-**Response `201`**: the created `job_descriptions` row (same shape as a saved job in `GET /jobs/saved`).
+**Response `201`**
+```json
+{
+  "id": 1,
+  "source": "remoteok",
+  "title": "Lead Data Scientist",
+  "company": "Brigit",
+  "location": "Remote",
+  "url": "https://remoteok.com/remote-jobs/remote-lead-data-scientist-brigit-1134476",
+  "posted_at": "2026-07-07T20:14:56+00:00",
+  "raw_text": "...",
+  "created_at": "2026-07-10T12:00:00.000000Z"
+}
+```
 
 **Errors**
 | Status | When |
 |---|---|
+| `401` | Missing, invalid, or expired token |
 | `409` | Already saved (same user + `source` + `external_id`) |
+| `422` | Request body doesn't match the `JobListing` shape |
+
+---
+
+## Planned (V2, remaining) — not yet built
+
+Contract below is the target shape for Checkpoint 12 (see ROADMAP.md) — list/unsave. Written ahead of time so implementation has a spec to build against; update this section (moving it above the line once real) as that checkpoint lands.
 
 ### `GET /jobs/saved`
 

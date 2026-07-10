@@ -1,3 +1,14 @@
+
+
+
+
+
+
+
+
+
+
+
 # Roadmap / Review Checkpoints
 
 Each checkpoint is built and reviewed one at a time — nothing here is built ahead of where the checkmarks stop.
@@ -16,9 +27,9 @@ Each checkpoint is built and reviewed one at a time — nothing here is built ah
 
 ## V2 — Job discovery
 
-- [ ] **Checkpoint 9** — Job-board clients: RemoteOK + Arbeitnow (no API key required), normalized into a shared `JobListing` schema; `GET /jobs/search?query=` (ephemeral results, not persisted)
-- [ ] **Checkpoint 10** — Add Adzuna + USAJobs (API-key providers) behind the same interface; `location` / `date_posted` filters on `GET /jobs/search`. Greenhouse/Lever demoted to not-built — see "Notes" below
-- [ ] **Checkpoint 11** — Migration: extend `job_descriptions` with `url`, `location`, `external_id`, `posted_at`; `POST /jobs/save` persists a search result for the current user (409 on duplicate save)
+- [x] **Checkpoint 9** — Job-board clients: RemoteOK + Arbeitnow (no API key required), normalized into a shared `JobListing` schema; `GET /jobs/search?query=` (ephemeral results, not persisted)
+- [x] **Checkpoint 10** — Add Adzuna + USAJobs (API-key providers) behind the same interface; `location` / `date_posted` filters on `GET /jobs/search`. Built and unit-tested against each provider's documented response shape — **not yet live-verified with real API keys**, since none were available in this environment (see V2.md). Greenhouse/Lever demoted to not-built — see "Notes" below
+- [x] **Checkpoint 11** — Migration: extend `job_descriptions` with `url`, `location`, `external_id`, `posted_at`; `POST /jobs/save` persists a search result for the current user (409 on duplicate save)
 - [ ] **Checkpoint 12** — `GET /jobs/saved` (list current user's saved jobs) + `DELETE /jobs/saved/{id}` (unsave)
 - [ ] **Checkpoint 13** — Frontend: `JobSearch` page (search form + results, Save + "Match against my resume") and `SavedJobs` page (list + remove), wired to the Checkpoint 9-12 endpoints
 

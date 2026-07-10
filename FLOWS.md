@@ -150,34 +150,43 @@ What was built and why (structured single-field output, ownership check via `mat
 
 ## Flow 4 — Job discovery (V2)
 
-**Status: planned, not yet built.** Design below matches ARCHITECTURE.md's provider-adapter pattern and API.md's "Planned (V2)" contracts; will be marked implemented section-by-section as Checkpoints 9-13 land.
+**Status: search (Checkpoints 9-10) and save (Checkpoint 11) are implemented, backend only; list/unsave and the frontend are still planned.** Design matches ARCHITECTURE.md's provider-adapter pattern and API.md's contracts.
 
 User flow:
-1. Logged-in user searches jobs by keyword (+ optional location / date-posted filter) — **planned, Checkpoints 9-10**
-2. User sees a merged results list from RemoteOK, Arbeitnow, Adzuna, and USAJobs — **planned, Checkpoints 9-10**
-3. User saves a result, or feeds it straight into the existing match flow (Flow 2) instead of pasting a JD by hand — **planned, Checkpoints 11, 13**
+1. Logged-in user searches jobs by keyword, with optional location / date-posted filters — **implemented (Checkpoints 9-10), backend only — no frontend page yet, verified via direct API calls**
+2. User sees a merged results list from RemoteOK, Arbeitnow, Adzuna, and USAJobs — **implemented (Checkpoints 9-10)**. Adzuna/USAJobs need a free API key configured in `.env`; without one, that provider is silently skipped (not live-verified with real keys in this environment — see V2.md's Checkpoint 10)
+3. User saves a result — **implemented (Checkpoint 11), backend only**. Feeding a saved job straight into the existing match flow (Flow 2) instead of pasting a JD by hand is still **planned, Checkpoint 13** (frontend wiring)
 4. User views/removes their saved jobs on a separate page — **planned, Checkpoints 12-13**
 
-Data flow (search — planned):
+Data flow (search — implemented):
 ```
 Browser                     FastAPI backend                RemoteOK / Arbeitnow / Adzuna / USAJobs
   │ GET /jobs/search             │                                       │
   │ ?query=&location=&date ────▶ │ call each provider's search()        │
-  │                              │ (adapter per provider) ─────────────▶│
+  │ (JWT)                        │ (adapter per provider) ─────────────▶│
   │                              │ ◀───────────────────────────────────│
-  │                              │ map each response → JobListing       │
+  │                              │ RemoteOK/Arbeitnow: query/location/  │
+  │                              │ date matched in-app (no native       │
+  │                              │ search support). Adzuna/USAJobs:     │
+  │                              │ passed through as native params.     │
+  │                              │ Unconfigured or failing provider is  │
+  │                              │ skipped, not fatal to the request    │
   │ ◀─────────────────────────── │ merged list, not persisted           │
 ```
+What was built and why (client-side vs native filtering, per-provider unit tests, why live verification wasn't possible for the two keyed providers): see V2.md's Checkpoints 9-10.
 
-Data flow (save — planned):
+Data flow (save — implemented):
 ```
 Browser                     FastAPI backend                     Postgres
   │ POST /jobs/save              │                                  │
   │ { JobListing } ────────────▶ │ 409 if (user, source,            │
-  │                              │ external_id) already saved       │
+  │ (JWT)                        │ external_id) already saved       │
+  │                              │ (checked in-app, and backed by   │
+  │                              │ a real DB unique constraint)     │
   │                              │ INSERT INTO job_descriptions ──▶ │
   │ ◀─────────────────────────── │ saved job row                    │
 ```
+What was built and why (schema migration, duplicate-save handling, cross-user isolation): see V2.md's Checkpoint 11.
 
 Full request/response shapes: see API.md's "Planned (V2)" section. What gets built and why, once each checkpoint actually lands: see V2.md.
 
