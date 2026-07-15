@@ -150,13 +150,13 @@ What was built and why (structured single-field output, ownership check via `mat
 
 ## Flow 4 — Job discovery (V2)
 
-**Status: search (Checkpoints 9-10) and save (Checkpoint 11) are implemented, backend only; list/unsave and the frontend are still planned.** Design matches ARCHITECTURE.md's provider-adapter pattern and API.md's contracts.
+**Status: search, save, list, and unsave (Checkpoints 9-12) are all implemented, backend only; the frontend is still planned (Checkpoint 13).** Design matches ARCHITECTURE.md's provider-adapter pattern and API.md's contracts.
 
 User flow:
 1. Logged-in user searches jobs by keyword, with optional location / date-posted filters — **implemented (Checkpoints 9-10), backend only — no frontend page yet, verified via direct API calls**
 2. User sees a merged results list from RemoteOK, Arbeitnow, Adzuna, and USAJobs — **implemented (Checkpoints 9-10)**. Adzuna/USAJobs need a free API key configured in `.env`; without one, that provider is silently skipped (not live-verified with real keys in this environment — see V2.md's Checkpoint 10)
 3. User saves a result — **implemented (Checkpoint 11), backend only**. Feeding a saved job straight into the existing match flow (Flow 2) instead of pasting a JD by hand is still **planned, Checkpoint 13** (frontend wiring)
-4. User views/removes their saved jobs on a separate page — **planned, Checkpoints 12-13**
+4. User views their saved jobs and can remove one — **implemented (Checkpoint 12), backend only**; a dedicated frontend page for this is still **planned, Checkpoint 13**
 
 Data flow (search — implemented):
 ```
@@ -187,6 +187,23 @@ Browser                     FastAPI backend                     Postgres
   │ ◀─────────────────────────── │ saved job row                    │
 ```
 What was built and why (schema migration, duplicate-save handling, cross-user isolation): see V2.md's Checkpoint 11.
+
+Data flow (list / unsave — implemented):
+```
+Browser                     FastAPI backend                     Postgres
+  │ GET /jobs/saved              │                                  │
+  │ (JWT) ─────────────────────▶ │ SELECT WHERE user_id = caller   │
+  │                              │ AND source != 'manual' ────────▶│
+  │ ◀─────────────────────────── │ saved jobs, newest first         │
+  │                              │                                  │
+  │ DELETE /jobs/saved/{id}      │                                  │
+  │ (JWT) ─────────────────────▶ │ 404 if not owned, or if it's a  │
+  │                              │ manual (non-saved) job          │
+  │                              │ DELETE FROM job_descriptions ──▶ │
+  │                              │ (cascades to any matches on it) │
+  │ ◀─────────────────────────── │ 204                              │
+```
+What was built and why (excluding manual job descriptions, cascade-delete of matches): see V2.md's Checkpoint 12.
 
 Full request/response shapes: see API.md's "Planned (V2)" section. What gets built and why, once each checkpoint actually lands: see V2.md.
 

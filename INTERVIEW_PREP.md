@@ -6,7 +6,7 @@ This doc is different from the others: not a technical reference, but a rehearsa
 
 ## The 60-second pitch
 
-> "AutoPilotAI is a full-stack AI career assistant — you upload a resume, paste a job description, and it gives you a match score, a skill-gap breakdown, and a tailored cover letter, using Google's Gemini API with structured outputs. I built the backend in FastAPI with hand-rolled JWT auth and a PostgreSQL database, and the frontend in React. The part I'm most proud of is that it's not a ChatGPT wrapper — there's a real relational schema, real auth, real automated tests, and every AI call returns schema-validated JSON instead of parsed free text."
+> "AutoPilotAI is a full-stack AI career assistant — you upload a resume, paste a job description, and it gives you a match score, a skill-gap breakdown, and a tailored cover letter, using Google's Gemini API with structured outputs. It also searches real job postings across four job boards and lets you save the ones you care about. I built the backend in FastAPI with hand-rolled JWT auth and a PostgreSQL database, and the frontend in React — it's deployed and live, not just running locally. The part I'm most proud of is that it's not a ChatGPT wrapper — there's a real relational schema, real auth, real automated tests, and every AI call returns schema-validated JSON instead of parsed free text."
 
 That last sentence is the one to lead with — it's the difference between "I called an API" and "I engineered a system."
 
@@ -23,7 +23,9 @@ That last sentence is the one to lead with — it's the difference between "I ca
 | AI | Google Gemini (`gemini-2.5-flash`), structured outputs | Constrains the model's response to a Pydantic schema — the SDK hands back an already-validated object, not a string I have to hope is valid JSON |
 | Frontend | React + Vite + TypeScript + Tailwind | Backend already exists as a separate API, so the frontend is a plain SPA — no need for a meta-framework (Next.js) whose main selling points (SSR, its own API routes) would go unused |
 | File parsing | pypdf, python-docx | Extract text server-side from uploaded PDF/DOCX resumes |
-| Testing | pytest, 17 tests | Auth, upload, and matching flows covered; external AI calls mocked so tests are fast and free |
+| Job search | RemoteOK, Arbeitnow, Adzuna, USAJobs behind one adapter interface | Four real public job-board APIs, not scraping — each provider maps to one shared `JobListing` schema, same "structured contract, swappable implementation" idea used for the AI layer |
+| Deployment | Vercel (frontend) + Render (backend, Docker) + Neon (Postgres) | Actually live, not just running locally — CORS origins are env-driven so the same code works in both places with no code change |
+| Testing | pytest, 39 tests | Auth, upload, matching, and job search/save covered; external AI and job-board API calls mocked so tests are fast, free, and don't depend on third parties being up |
 
 ---
 
@@ -46,6 +48,12 @@ Next.js's biggest features — server-side rendering, its own API routes — exi
 
 **Why structured outputs instead of just prompting the AI to "return JSON"?**
 Because free-text JSON from an LLM isn't reliable — models add chatty preambles, wrap output in markdown, or occasionally break the JSON shape. Structured outputs constrain the response to a schema at the API level, so what comes back is already validated and typed, not something I parse and hope is correct.
+
+**Why did you build job search against four separate providers instead of just picking one?**
+No single free job-board API covers the market, and I wanted the design to prove it could scale to more sources without a rewrite. Each provider (RemoteOK, Arbeitnow, Adzuna, USAJobs) gets one small adapter file that maps its own response shape onto one shared `JobListing` schema — the same "one contract, swappable implementation" pattern I already used for the AI provider swap. Adding a fifth provider later means writing one more adapter file, not touching the route, the tests, or anything else that already works.
+
+**Why did you drop Greenhouse/Lever from job search but mention them in your roadmap for a different feature?**
+Greenhouse/Lever's public APIs are scoped per-employer — you fetch one specific company's board, there's no "search every company's postings for a keyword" endpoint. That doesn't fit a keyword-search feature, but it's exactly the shape needed for a *different*, not-yet-built feature: letting a user track specific companies and get alerted to new postings there. Recognizing that the same integration fits a different feature, instead of forcing it into the wrong one, is the actual design decision worth mentioning.
 
 ---
 
@@ -110,6 +118,12 @@ My test suite created real users in the actual development database on every run
 **"I swapped a core external dependency mid-project with minimal blast radius, because of how I'd structured the code."**
 (See the Gemini/OpenAI answer above — this is the same story, told as a challenge instead of a decision.)
 
+**"Deploying it for real surfaced three bugs that never showed up in local dev, and I debugged each from first principles instead of guessing."**
+Three, in order: (1) Render's dashboard "Root Directory" field silently didn't take effect from the initial service-creation form — the build failed with `Dockerfile: no such file or directory`, and I traced it to needing a Settings-page save plus a fresh manual deploy, not just a retry. (2) Once found, the *build context* was still wrong (`requirements.txt: not found`) because Root Directory controls the Docker build context too, not just where the Dockerfile is looked up — same root cause, one more layer deep. (3) After both were live, signup returned a 404 with a suspicious double slash in the URL — traced to a trailing slash on the frontend's `VITE_API_BASE_URL` env var concatenating badly with the API client's paths, fixed by stripping it and forcing a rebuild (Vite bakes env vars in at build time, so editing the value alone doesn't take effect). None of these were guessed at — each was diagnosed from the actual error message and the actual request URL.
+
+**"I designed for a third-party API being down or unconfigured, not just for the happy path."**
+The job search feature calls four independent external APIs (RemoteOK, Arbeitnow, Adzuna, USAJobs). Two need a paid-free-tier signup key; if that key isn't set, or if any single provider's request fails, that one provider is silently skipped rather than failing the whole search — a user searching jobs shouldn't get an error because one of four providers had a hiccup or because I hadn't set up every credential yet. This let the feature ship and be reviewed with only two of four providers actually configured, and the other two turn on automatically the moment real keys are added — no code change needed.
+
 ---
 
 ## Testing approach
@@ -126,9 +140,10 @@ If pushed on *why not mock the DB too*: "A mocked DB can't catch a real foreign-
 - JWT signed with a random 48-byte secret (`HS256`); the payload carries only a user ID and expiry, nothing sensitive, since JWT payloads are base64-readable, not encrypted
 - Login and signup return the *same* generic error for "no such user" and "wrong password" — distinguishing them would let an attacker enumerate valid emails
 - Fetching another user's resume/match returns `404`, not `403` — a `403` would confirm the resource exists, which is itself information leakage
-- CORS is restricted to the actual frontend origin, not wildcarded
+- CORS is restricted to an explicit, env-configured allowlist of frontend origins, not wildcarded
 - File uploads are capped at 5MB and validated by extension before parsing
-- No credential (DB connection string, JWT secret, Gemini API key) is ever sent to the frontend — every privileged call happens server-side
+- No credential (DB connection string, JWT secret, Gemini API key, job-board API keys) is ever sent to the frontend — every privileged call happens server-side
+- Duplicate-save prevention on job listings is enforced two ways — a friendly API-level check *and* a real database uniqueness constraint as the actual backstop — the same defense-in-depth idea as validating input at the API layer while still trusting the database's own constraints, not one or the other
 
 **Honest gap to mention if asked "what would you improve":** there's no token revocation — a JWT is valid until it naturally expires, since nothing about login state is tracked server-side. Real revocation would need either short-lived tokens with a refresh flow, or a server-side denylist. Also no rate limiting yet, so nothing currently stops someone from hammering the signup or matching endpoints.
 
@@ -136,9 +151,9 @@ If pushed on *why not mock the DB too*: "A mocked DB can't catch a real foreign-
 
 ## What's not done yet (say this proactively, don't wait to be caught)
 
-- **Deployment** — built and tested locally + against real cloud services (Neon Postgres, Gemini), but not yet deployed to Vercel/Railway
-- **V2**: job discovery via legitimate public job-board APIs (deliberately *not* scraping LinkedIn/Indeed — that violates their ToS and is the actual reason a lot of beginner projects like this get IP-banned before shipping)
-- **V3**: application status tracking, an analytics dashboard, and an optional (explicitly risk-flagged, personal-account-only) browser-automation auto-apply feature
+- **V2 frontend**: job search and save/saved-jobs backend endpoints are built, tested, and deployed — there's just no page in the React UI for them yet, so today they're only reachable via the API directly (Swagger UI or `curl`)
+- **Two of the four job-search providers (Adzuna, USAJobs) haven't been live-verified** — built and unit-tested against their documented API shapes, but no free API key was available to actually call them for real yet. Worth saying out loud rather than letting someone assume all four were tested equally.
+- **V3**: application status tracking, an analytics dashboard, priority-company alerts (get notified when a company you're watching posts a new job matching your resume), and an optional (explicitly risk-flagged, personal-account-only) browser-automation auto-apply feature
 
 Framing that lands well: "I scoped this to build the hard, valuable part completely and correctly first — real auth, real schema, real AI integration with real tests — rather than spreading effort thin across every planned feature and having nothing fully working."
 
@@ -157,6 +172,9 @@ Structured outputs guarantee the *shape* of the response is correct — a valid 
 
 **"What's the single biggest risk in this design?"**
 Two real ones: no JWT revocation (already covered above), and a single point of dependency on one AI vendor — if Gemini has an outage or changes its API, matching and cover letters stop working. The provider swap experience is actually good evidence I could migrate again if needed, since the contract (`MatchResult`/`CoverLetterResult`) is decoupled from the specific SDK.
+
+**"What happens if one of the four job-board APIs goes down or gets rate-limited?"**
+That provider is skipped for that request — the other three still return results, and the user just gets a slightly smaller combined list instead of an error page. It's the same principle as a circuit breaker, implemented simply (a try/except around each provider call) because at this scale a full circuit-breaker library would be solving a problem I don't have yet. If a provider started failing constantly, adding a real backoff/circuit-breaker would be a natural next step — the adapter boundary already isolates where that change would go.
 
 ---
 

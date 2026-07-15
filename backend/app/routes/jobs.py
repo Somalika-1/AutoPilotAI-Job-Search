@@ -52,3 +52,35 @@ def save_job(
     db.commit()
     db.refresh(job_description)
     return job_description
+
+
+@router.get("/saved", response_model=list[SavedJobOut])
+def list_saved_jobs(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> list[JobDescription]:
+    return list(
+        db.scalars(
+            select(JobDescription)
+            .where(JobDescription.user_id == current_user.id, JobDescription.source != "manual")
+            .order_by(JobDescription.created_at.desc())
+        )
+    )
+
+
+@router.delete("/saved/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
+def unsave_job(
+    job_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> None:
+    job_description = db.get(JobDescription, job_id)
+    if (
+        job_description is None
+        or job_description.user_id != current_user.id
+        or job_description.source == "manual"
+    ):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Saved job not found")
+
+    db.delete(job_description)
+    db.commit()

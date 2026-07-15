@@ -21,3 +21,4 @@ class Match(Base):
 
     resume: Mapped["Resume"] = relationship(back_populates="matches")
     job_description: Mapped["JobDescription"] = relationship(back_populates="matches")
+

@@ -251,13 +251,9 @@ Persist one search result as a `job_descriptions` row for the current user. Requ
 
 ---
 
-## Planned (V2, remaining) — not yet built
-
-Contract below is the target shape for Checkpoint 12 (see ROADMAP.md) — list/unsave. Written ahead of time so implementation has a spec to build against; update this section (moving it above the line once real) as that checkpoint lands.
-
 ### `GET /jobs/saved`
 
-List the current user's saved jobs, newest first. Requires auth.
+List the current user's saved jobs, newest first. Requires auth. Only jobs saved via `POST /jobs/save` are returned — manually-pasted job descriptions (`source = "manual"`, from `POST /matches`) are excluded, since those aren't "saved jobs" in this sense.
 
 **Response `200`**
 ```json
@@ -276,16 +272,22 @@ List the current user's saved jobs, newest first. Requires auth.
 ]
 ```
 
+**Errors**
+| Status | When |
+|---|---|
+| `401` | Missing, invalid, or expired token |
+
 ### `DELETE /jobs/saved/{id}`
 
-Unsave a job. Requires auth.
+Unsave a job. Requires auth. Deleting a saved job also deletes any matches created against it (existing `ON DELETE CASCADE` on `matches.job_description_id`, unchanged from Checkpoint 2).
 
 **Response `204`**
 
 **Errors**
 | Status | When |
 |---|---|
-| `404` | Doesn't exist, or belongs to a different user |
+| `401` | Missing, invalid, or expired token |
+| `404` | Doesn't exist, belongs to a different user, or isn't a saved job (e.g. it's a manually-pasted `source = "manual"` job description) |
 
 ---
 
